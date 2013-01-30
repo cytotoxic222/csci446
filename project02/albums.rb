@@ -13,9 +13,9 @@ def get_form_template
         <form action="/list" method="GET">
           <label for="sort_by">Sort by</label>
           <select name="sort_by">
-            <option value="rank">Rank (default)</option>
-            <option value="name">Name</option>
-            <option value="year">Year</option>
+            <option value="rank_sort">Rank (default)</option>
+            <option value="name_sort">Name</option>
+            <option value="year_sort">Year</option>
           </select>
           <label for="rank">Select a Rank to Highlight</label>
           <select name="rank">"
@@ -24,6 +24,20 @@ def get_form_template
             <% end %>
           </select>
             <input type="submit" value="Display List">
+      </body>
+      </html>
+    }
+end
+
+def get_list_template(sorted)
+  %{
+      <html>
+      <head>
+        <title>Rolling Stone's Top 100 Albums of All Time</title>
+      </head>
+      <body>
+        <h1>Rolling Stone's Top 100 Albums of All Time</h1>
+        <p>Sorted by <% @sorted %></p>
       </body>
       </html>
     }
@@ -54,12 +68,24 @@ class AlbumApp
 
   def render_list(request)						        # handles the list page render
   	response = Rack::Response.new(request.path)
+    albums = Hash.new {}
+
+    File.open("top_100_albums.txt", "r") do |fp|
+      fp.each do |line|
+        name, year = line.chomp.split(", ")
+        albums[name] = year
+      end
+    end
 
     File.open("list.html", "w") do |f|
       f.write(ERB.new(get_list_template).result(binding))
     end
-    
-    # case 
+
+    case params[:sort_by]
+    when "rank_sort" then puts "rawr"
+    when "name_sort" then puts "rawr"
+    when "year_sort" then puts "rawr"
+    end
   	response.finish
   end
 
