@@ -1,47 +1,6 @@
 #!/usr/bin/env ruby
 require 'rack'
-require 'erb'
-
-def get_form_template
-  %{
-      <html>
-      <head>
-        <title>Rolling Stone's Top 100 Albums of All Time</title>
-      </head>
-      <body>
-        <h1>Rolling Stone's Top 100 Albums of All Time</h1>
-        <form action="/list" method="GET">
-          <label for="sort_by">Sort by</label>
-          <select name="sort_by">
-            <option value="rank_sort">Rank (default)</option>
-            <option value="name_sort">Name</option>
-            <option value="year_sort">Year</option>
-          </select>
-          <label for="rank">Select a Rank to Highlight</label>
-          <select name="rank">"
-            <% for @i in 1..100 %>
-              <option value="<%= @i %>"> <%= @i %> </option>
-            <% end %>
-          </select>
-            <input type="submit" value="Display List">
-      </body>
-      </html>
-    }
-end
-
-def get_list_template(sorted)
-  %{
-      <html>
-      <head>
-        <title>Rolling Stone's Top 100 Albums of All Time</title>
-      </head>
-      <body>
-        <h1>Rolling Stone's Top 100 Albums of All Time</h1>
-        <p>Sorted by <% @sorted %></p>
-      </body>
-      </html>
-    }
-end
+require_relative 'album'
 
 class AlbumApp
   def call(env)
@@ -58,35 +17,32 @@ class AlbumApp
     rank_array = Array.new
     # form_template = get_template
 
-    File.open("form.html", "w") do |f|
-      f.write(ERB.new(get_form_template).result(binding))
-    end
-
-  	File.open("form.html", "rb") { |form| response.write(form.read)}
+    File.open("form_top.html", "rb") { |form| response.write(form.read) }
+    (1..100).each { |i| response.write("<option value=\"#{i}\">#{i}</option>\n") }
+    File.open("form_bottom.html", "rb") { |form| response.write(form.read) }
   	response.finish								            # converts object into rack expected response
   end
 
   def render_list(request)						        # handles the list page render
   	response = Rack::Response.new(request.path)
-    albums = Hash.new {}
+    response.write "Params: #{request.params}\n"
+    response.write "order: #{request.params['order']}\n"
+    response.write "rank: #{request.params['rank']}\n"
+    File.open("list_top.html", "rb") { |template| response.write(template.read) }
+    
+    album_data = File.readlines("top_100_albums.txt")
+    albums = album_data.each_with_index.map { |record, i| Album.new(i, record) }
 
-    File.open("top_100_albums.txt", "r") do |fp|
-      fp.each do |line|
-        name, year = line.chomp.split(", ")
-        albums[name] = year
-      end
+    albums.each do |album|
+      response.write("\t<tr>\n")
+      response.write("\t\t<td>#{album.rank}</td>\n")
+      response.write("\t\t<td>#{album.title}</td>\n")
+      response.write("\t\t<td>#{album.year}</td>\n")
+      response.write("\t</tr>\n")
     end
 
-    File.open("list.html", "w") do |f|
-      f.write(ERB.new(get_list_template).result(binding))
-    end
-
-    case params[:sort_by]
-    when "rank_sort" then puts "rawr"
-    when "name_sort" then puts "rawr"
-    when "year_sort" then puts "rawr"
-    end
-  	response.finish
+  	File.open("list_bottom.html", "rb") { |template| response.write(template.read) }
+    response.finish
   end
 
   def render_404								              # handles the 404 page
